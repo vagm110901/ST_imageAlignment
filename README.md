@@ -1,2 +1,2 @@
 # ST_imageAlignment
-Image alignment from Spatial Transcriptomics data of Spinal Cord
+Image alignment methods for Spatial Transcriptomics data of Spinal Cord
