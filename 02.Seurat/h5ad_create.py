@@ -12,9 +12,10 @@ sc.logging.print_header()
 print(f"squidpy=={sq.__version__}")
 
 #adatas = []
-patient = 'MIX'
+patient = '19'
 
 for i in range(1, 5):
+    i = str(i)
     # Load expression matrixes and metadata for each slice
     expression = pd.read_csv(f'./AnnData{patient}/expression_matrix_slice{i}.csv', index_col=0)
     cell_metadata = pd.read_csv(f'./AnnData{patient}/cell_metadata_slice{i}.csv', index_col=0)
@@ -28,39 +29,40 @@ for i in range(1, 5):
 
     spatial_coords = image_coords[['imagerow', 'imagecol']]  # Ajustar según los nombres de las columnas
     scale_factors = pd.read_csv(f'./AnnData{patient}/scale_factors_slice{i}.csv', index_col=0)
-
-
-
+    
     image_coords_selected = image_coords.iloc[:,:]
     cell_metadata = cell_metadata.join(image_coords_selected, how="left")
+    
+    # Cargar la imagen espacial para el slice
+    spatial_image = io.imread(f'./AnnData{patient}/spatial_image_slice{i}.png')
 
     # Crear objeto AnnData para el slice
     adata = sc.AnnData(X=expression.values, obs=cell_metadata, var=gene_metadata)
 
     # Incluir las coordenadas espaciales
     adata.obsm['spatial'] = spatial_coords.values
-
-    # Cargar la imagen espacial para el slice
-    spatial_image = io.imread(f'./AnnData{patient}/spatial_image_slice{i}.png')
+    #adata.obsm['rgb'] = spatial_image
 
     # Asociar la imagen al objeto AnnData
     image_name = str(cell_metadata.name.iloc[0])
     adata.uns['spatial'] = {image_name: {}}
     adata.uns['spatial'][image_name]['images'] = {}
-    adata.uns['spatial'][image_name]["images"] = {'hires': spatial_image}
+    adata.uns['spatial'][image_name]["images"] = {'lowres': spatial_image}
     adata.uns['spatial'][image_name]['scalefactors'] = {
         'tissue_hires_scalef': float(scale_factors.tissue_hires_scalef.iloc[0]),
-        'spot_diameter_fullres': float(scale_factors.spot_diameter_fullres.iloc[0])
-    }
+        'tissue_lowres_scalef': float(scale_factors.tissue_lowres_scalef.iloc[0]),
+        'spot_diameter_fullres': float(scale_factors.spot_diameter_fullres.iloc[0]),
+        'fiducial_diameter_fullres': float(scale_factors.fiducial_diameter_fullres.iloc[0])}
     
     adata.var_names = adata.var['x']
     adata.X = csr_matrix(adata.X)
 
     adata.write(f'Paciente{patient}_merge_{i}.h5ad')
-    
 
     # Agregar el objeto AnnData a la lista
     #adatas.append(adata)
+
+    # end for
 
 # Combined the AnnData objects into a unique one
 #adata_combined = adatas[0].concatenate(adatas[1:], join='outer')
