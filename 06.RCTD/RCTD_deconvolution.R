@@ -86,18 +86,21 @@ saveDir <- "/home/vgaya/ST_imageAlignment/06.RCTD"
 
 reference <- readRDS(paste0(saveDir,'/SCRef_YadavAnnot.rds'))
 
-#patients <- c("19","MIX")
-patients <- c("MIX")
+patients <- c("19","MIX")
+#patients <- c("MIX")
 #modes <- c("alignTR","procrustes","imageJ","alignTR_S","procrustes_S","imageJ_S")
-modes <- c("alignTR")
+#modes <- c("PASTE2")
+modes <- c("STalign")
 ims <- c("2","3","4")
 #ims <- c("4")
 
 for (patient in patients) {
   for (mode in modes) {
     if (mode == "imageJ" | mode == "imageJ_S") {
-      dataDir <- "/home/vgaya/ST_imageAlignment/05.ImageJ" } else ( 
-        dataDir <- "/home/vgaya/ST_imageAlignment/04.ImageAlignment")
+      dataDir <- "/home/vgaya/ST_imageAlignment/05.ImageJ" } else if (mode == "PASTE2") {
+      dataDir <- "/home/vgaya/ST_imageAlignment/07.PASTE2" } else if (mode == "STalign") {
+      dataDir <- "/home/vgaya/ST_imageAlignment/08.STalign" } else ( 
+      dataDir <- "/home/vgaya/ST_imageAlignment/04.ImageAlignment")
     for (im in ims) {
       # Spatial Transcriptomics data 
       listaObjST <- readRDS(paste0(dataDir, "/patient", patient, "_merge_", 
@@ -113,10 +116,10 @@ for (patient in patients) {
         listaObjST[[objname]] <- objectST
       }
       
-      m1 <- SpatialDimPlot(listaObjST[[1]], alpha = 0.5, crop = FALSE) & theme(legend.position = "none")
-      m2 <- SpatialDimPlot(listaObjST[[2]], alpha = 0.5, crop = FALSE) & theme(legend.position = "none")
-      m3 <- SpatialDimPlot(listaObjST[[3]], alpha = 0.5, crop = FALSE) & theme(legend.position = "none")
-      print(m1 + m2 + m3)
+#      m1 <- SpatialDimPlot(listaObjST[[1]], alpha = 0.5, crop = FALSE) & theme(legend.position = "none")
+#      m2 <- SpatialDimPlot(listaObjST[[2]], alpha = 0.5, crop = FALSE) & theme(legend.position = "none")
+#      m3 <- SpatialDimPlot(listaObjST[[3]], alpha = 0.5, crop = FALSE) & theme(legend.position = "none")
+#      print(m1 + m2 + m3)
       
       listaObjST_RCTD <- list()
       

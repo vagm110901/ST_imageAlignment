@@ -47,7 +47,7 @@ for i in range(1, 5):
     image_name = str(cell_metadata.name.iloc[0])
     adata.uns['spatial'] = {image_name: {}}
     adata.uns['spatial'][image_name]['images'] = {}
-    adata.uns['spatial'][image_name]["images"] = {'lowres': spatial_image}
+    adata.uns['spatial'][image_name]['images'] = {'lowres': spatial_image}
     adata.uns['spatial'][image_name]['scalefactors'] = {
         'tissue_hires_scalef': float(scale_factors.tissue_hires_scalef.iloc[0]),
         'tissue_lowres_scalef': float(scale_factors.tissue_lowres_scalef.iloc[0]),
