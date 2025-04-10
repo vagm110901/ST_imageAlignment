@@ -1,18 +1,4 @@
 ###############################################################################
-#             function selectCoord(image)                                     #
-###############################################################################
-# Allows the user to select multiple points on the provided image by clicking 
-# on it.
-# Returns a list containing the coordinates of the selected points with two 
-# elements: x and y.
-selectCoord <- function(image) {
-  library(imager)
-  plot(image)
-  coordinates <- locator(type = "p")
-  return(coordinates)
-}
-
-###############################################################################
 #             Main alignment code                                             #
 ###############################################################################
 # Load required libraries
@@ -24,6 +10,7 @@ library(tibble)
 
 # Load a custom function for alignment evaluation
 source("/Users/vagm_110901/Documents/Universitat/ConesaLab/Lab/04.ImageAlingment/EvalAlign/function_evalAlign.R")
+source("/Users/vagm_110901/Documents/Universitat/ConesaLab/Lab/04.ImageAlingment/EvalAlign/function_selectCoord.R")
 
 options <- c("19", "MIX")
 choice <- menu(options, title = "Select which patient do you want to align: \n(patient 19 refers to three different slices from patient 19 and \npatient MIX refers to three different samples from different patients, \nin both choices the alignment would be performed to the same slice from patient 19 \nwhich is considered as the reference)")
@@ -33,6 +20,8 @@ options <- c("GTEM (Geometric Transformation Estimation Model)",
              "Procrustes (Procrustes Transformation)",
              "imageJ (ImageJ - Register Virtual Stack Slices)")
 choice <- menu(options, title = "Select which mode do you want to perform the alignment.")
+modesAbrs <- c("alignTR","procrustes","imageJ")
+modeAbr <- modesAbrs[choice]
 mode <- options[choice]
 
 options <- c("Yes", "No")
@@ -648,111 +637,16 @@ dev.off()
 ###############################################################################
 #           Evaluation of the alignment                                       #
 ###############################################################################
-# Initialize an evaluation list
-Evaluation <- list()
-# Define coordinates for comparison
-x1 <- listaCoordenadasNEW[[1]]$x[[5]]
-y1 <- listaCoordenadasNEW[[1]]$y[[5]]
-
-# Create a list to store control alignment parameters
-control <- list()
-
-# Loop through the new coordinates and evaluate the alignment
+listaRawImages <- list()
+listaTransImages <- list()
 for (i in 1:length(listaCoordenadasNEW)) {
-  control[[i]] <- controlAlign(pacientes.semla@tools[["Staffli"]]@rasterlists[["transformed"]][[i]])
-  print(control)
+  listaRawImages[[i]] <- pacientes.semla@tools[["Staffli"]]@rasterlists[["raw"]][[i]]
+  listaTransImages[[i]] <- pacientes.semla@tools[["Staffli"]]@rasterlists[["transformed"]][[i]]
 }
 
-# Store the control evaluations in the Evaluation list
-Evaluation$control <- control
-
-# Evaluate raw images (same region, same point)
-for ( i in 1:length(listaCoordenadas)) {
-  if (i != length(listaCoordenadas)) {
-    for ( j in i:length(listaCoordenadas))  {
-      if (i != j) {
-        x1 <- listaCoordenadas[[i]]$x[[5]]
-        y1 <- listaCoordenadas[[i]]$y[[5]]
-        print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " comparing the same region without selecting a different point."))
-        
-        # Evaluate the alignment and store parameters
-        parameters <- 
-          evalAlign(
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["raw"]][[i]][(x1-310):(x1+0),(y1-200):(y1+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["raw"]][[j]][(x1-310):(x1+0),(y1-200):(y1+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            listaCoordenadas, c(i,j))
-        print(parameters)
-        imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
-        Evaluation$original$sameRegion_samePoint[[imagescompare]] <- parameters
-        
-      }}}}
-
-# Evaluate raw images (common region, different point)
-for ( i in 1:length(listaCoordenadas)) {
-  if (i != length(listaCoordenadas)) {
-    for ( j in i:length(listaCoordenadas))  {
-      if (i != j) {
-        x1 <- listaCoordenadas[[i]]$x[[5]]
-        y1 <- listaCoordenadas[[i]]$y[[5]]
-        x2 <- listaCoordenadas[[j]]$x[[5]]
-        y2 <- listaCoordenadas[[j]]$y[[5]]
-        print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " selecting an area from a reference point in each image."))
-        
-        # Evaluate the alignment and store parameters
-        parameters <-
-          evalAlign(
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["raw"]][[i]][(x1-310):(x1+0),(y1-200):(y1+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["raw"]][[j]][(x2-310):(x2+0),(y2-200):(y2+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            listaCoordenadas, c(i,j))
-        print(parameters)
-        imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
-        Evaluation$original$commonRegion_differentPoint[[imagescompare]] <- parameters
-      }}}}
-
-# Evaluate transformed images (same region, same point)
-for ( i in 1:length(listaCoordenadasNEW)) {
-  if (i != length(listaCoordenadasNEW)) {
-    for ( j in i:length(listaCoordenadasNEW))  {
-      if (i != j) {
-        x1 <- listaCoordenadasNEW[[i]]$x[[5]]
-        y1 <- listaCoordenadasNEW[[i]]$y[[5]]
-        print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " comparing the same region without selecting a different point."))
-        
-        # Evaluate the alignment and store parameters
-        parameters <- 
-          evalAlign(
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["transformed"]][[i]][(x1-310):(x1+0),(y1-200):(y1+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["transformed"]][[j]][(x1-310):(x1+0),(y1-200):(y1+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            listaCoordenadasNEW, c(i,j))
-        print(parameters)
-        imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
-        Evaluation$transformed$sameRegion_samePoint[[imagescompare]] <- parameters
-        
-      }}}}
-
-# Evaluate transformed images (common region, different point)
-for ( i in 1:length(listaCoordenadasNEW)) {
-  if (i != length(listaCoordenadasNEW)) {
-    for ( j in i:length(listaCoordenadasNEW))  {
-      if (i != j) {
-        x1 <- listaCoordenadasNEW[[i]]$x[[5]]
-        y1 <- listaCoordenadasNEW[[i]]$y[[5]]
-        x2 <- listaCoordenadasNEW[[j]]$x[[5]]
-        y2 <- listaCoordenadasNEW[[j]]$y[[5]]
-        print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " selecting an area from a reference point in each image."))
-        
-        # Evaluate the alignment and store parameters
-        parameters <-
-          evalAlign(
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["transformed"]][[i]][(x1-310):(x1+0),(y1-200):(y1+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            pacientes.semla@tools[["Staffli"]]@rasterlists[["transformed"]][[j]][(x2-310):(x2+0),(y2-200):(y2+200)], # [(x1-320):(x1+80),(y1-200):(y1+200)]
-            listaCoordenadasNEW, c(i,j))
-        print(parameters)
-        imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
-        Evaluation$transformed$commonRegion_differentPoint[[imagescompare]] <- parameters
-      }}}}
-
-
+Evaluation <- evaluationComplete(listaCoordenadasNEW, listaCoordenadas,
+                                 listaRawImages, listaTransImages)
+  
 # Update the transformed images in the original Seurat object
 pacientes.seurat <- UpdateSeuratFromSemla(pacientes.semla, image_use = "transformed")
 
@@ -857,7 +751,12 @@ for (i in 2:length(pacientes.seurat.split.orig)) {
 # This graphs are better performed in the script: graphs.R, where they are    #
 # more complete in terms of error bar and p-values, and are visualized as a   #
 # single graph for the three methods.                                         #
-############################################################################### 
+###############################################################################
+
+###############################################################################
+#      file graphs.R has automatized the graphs combining the different       # 
+#                      alignment methodologies used                           #
+###############################################################################
 
 Evaluation <- readRDS(paste0(saveDir, "/results/patient",patient,"_EVALUATION_merge_",modeAbr,".rds"))
 
@@ -1115,11 +1014,3 @@ peval4 <- ggplot(stats_df[10:11,], aes(x = Parameter, y = Mean)) +
            label = paste0("|--",sprintf("%.4f", eucl_p_value),"--|"), size = 8, color = color_eucl_p_value)
 
 ggsave(paste0(saveDir, "/results/patient",patient,"_merge_",modeAbr,"_eval4.png"), plot = peval4)
-
-
-
-
-
-
-
-

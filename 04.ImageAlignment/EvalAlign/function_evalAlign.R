@@ -1,4 +1,5 @@
 library(SpatialPack)
+source("/Users/vagm_110901/Documents/Universitat/ConesaLab/Lab/04.ImageAlingment/EvalAlign/function_selectCoord.R")
 
 # Convert hexadecimal color data into an RGB array with dimensions (x, y, 4).
 # The function organizes color values (R, G, B, Alpha) into a 3D array.
@@ -153,11 +154,219 @@ controlAlign <- function(image1) {
   return(solution)
 }
 
-# Allows the user to select multiple points on the provided image by clicking on it.
-# Returns a list containing the coordinates of the selected points with two elements: x and y.
-selectCoord <- function(image) {
-  library(imager)
-  plot(image)
-  coordinates <- locator(type = "p")  # Capture selected coordinates
-  return(coordinates)
+
+evaluationComplete <- function(listaCoordenadasNEW, listaCoordenadas,
+                       listaRawImages, listaTransImages, patient = c('unique','multiple')) {
+  
+  patient <- match.arg(patient)
+  
+  # Initialize an evaluation list
+  Evaluation <- list()
+  # Define coordinates for comparison
+  x1 <- listaCoordenadasNEW[[1]]$x[[5]]
+  y1 <- listaCoordenadasNEW[[1]]$y[[5]]
+  
+  # Create a list to store control alignment parameters
+  control <- list()
+  
+  # Loop through the new coordinates and evaluate the alignment
+  for (i in 1:length(listaCoordenadasNEW)) {
+    control[[i]] <- controlAlign(listaTransImages[[i]])
+    print(control)
+  }
+  
+  # Store the control evaluations in the Evaluation list
+  Evaluation$control <- control
+  
+  # Evaluate raw images (same region, same point)
+  for ( i in 1:length(listaCoordenadas)) {
+    if (i != length(listaCoordenadas)) {
+      for ( j in i:length(listaCoordenadas))  {
+        if (i != j) {
+          x1 <- listaCoordenadas[[i]]$x[[5]]
+          y1 <- listaCoordenadas[[i]]$y[[5]]
+          dim1 <- dim(listaTransImages[[i]])
+          dim2 <- dim(listaTransImages[[j]])
+          
+          if (patient == 'unique') { 
+            x1_min <- max(0, x1 - 200)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1 + 200)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+            
+          } else if (patient == 'multiple') {
+            x1_min <- max(0, x1 - 310)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+          }
+          print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " comparing the same region without selecting a different point."))
+          
+          # Evaluate the alignment and store parameters
+          parameters <- 
+            evalAlign(
+              listaRawImages[[i]][coordRange[[1]],coordRange[[2]],], 
+              listaRawImages[[j]][coordRange[[1]],coordRange[[2]],], 
+              listaCoordenadas, c(i,j))
+          print(parameters)
+          imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
+          Evaluation$original$sameRegion_samePoint[[imagescompare]] <- parameters
+          
+        }}}}
+  
+  # Evaluate raw images (common region, different point)
+  for ( i in 1:length(listaCoordenadas)) {
+    if (i != length(listaCoordenadas)) {
+      for ( j in i:length(listaCoordenadas))  {
+        if (i != j) {
+          x1 <- listaCoordenadas[[i]]$x[[5]]
+          y1 <- listaCoordenadas[[i]]$y[[5]]
+          x2 <- listaCoordenadas[[j]]$x[[5]]
+          y2 <- listaCoordenadas[[j]]$y[[5]]
+          dim1 <- dim(listaTransImages[[i]])
+          dim2 <- dim(listaTransImages[[j]])
+          
+          if (patient == 'unique') { 
+            x1_min <- max(0, x1 - 200)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1 + 200)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            x2_min <- max(0, x2 - 200)
+            y2_min <- max(0, y2 - 200)
+            x2_max <- min(dim1[1], dim2[1], x2 + 200)
+            y2_max <- min(dim1[2], dim2[2], y2 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+            coordRange2 <- list(x2_min:x2_max, y2_min:y2_max)
+            
+          } else if (patient == 'multiple') {
+            x1_min <- max(0, x1 - 310)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            x2_min <- max(0, x2 - 310)
+            y2_min <- max(0, y2 - 200)
+            x2_max <- min(dim1[1], dim2[1], x2)
+            y2_max <- min(dim1[2], dim2[2], y2 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+            coordRange2 <- list(x2_min:x2_max, y2_min:y2_max)
+          }
+          print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " selecting an area from a reference point in each image."))
+          
+          # Evaluate the alignment and store parameters
+          parameters <- tryCatch({
+            evalAlign(
+              listaRawImages[[i]][coordRange[[1]],coordRange[[2]],],
+              listaRawImages[[j]][coordRange2[[1]],coordRange2[[2]],],
+              listaCoordenadas, c(i,j))
+          }, error = function(e) {
+            message(sprintf("Error en comparación %d-%d: %s", i, j, e$message))
+            return(NULL)
+            })
+          print(parameters)
+          imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
+          Evaluation$original$commonRegion_differentPoint[[imagescompare]] <- parameters
+        }}}}
+  
+  # Evaluate transformed images (same region, same point)
+  for ( i in 1:length(listaCoordenadasNEW)) {
+    if (i != length(listaCoordenadasNEW)) {
+      for ( j in i:length(listaCoordenadasNEW))  {
+        if (i != j) {
+          x1 <- listaCoordenadasNEW[[i]]$x[[5]]
+          y1 <- listaCoordenadasNEW[[i]]$y[[5]]
+          dim1 <- dim(listaTransImages[[i]])
+          dim2 <- dim(listaTransImages[[j]])
+          
+          if (patient == 'unique') { 
+            x1_min <- max(0, x1 - 200)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1 + 200)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+            
+          } else if (patient == 'multiple') {
+            x1_min <- max(0, x1 - 310)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+          }
+          print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " comparing the same region without selecting a different point."))
+          
+          # Evaluate the alignment and store parameters
+          parameters <- 
+            evalAlign(
+              listaTransImages[[i]][coordRange[[1]],coordRange[[2]],],
+              listaTransImages[[j]][coordRange[[1]],coordRange[[2]],],
+              listaCoordenadasNEW, c(i,j))
+          print(parameters)
+          imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
+          Evaluation$transformed$sameRegion_samePoint[[imagescompare]] <- parameters
+          
+        }}}}
+  
+  # Evaluate transformed images (common region, different point)
+  for ( i in 1:length(listaCoordenadasNEW)) {
+    if (i != length(listaCoordenadasNEW)) {
+      for ( j in i:length(listaCoordenadasNEW))  {
+        if (i != j) {
+          x1 <- listaCoordenadasNEW[[i]]$x[[5]]
+          y1 <- listaCoordenadasNEW[[i]]$y[[5]]
+          x2 <- listaCoordenadasNEW[[j]]$x[[5]]
+          y2 <- listaCoordenadasNEW[[j]]$y[[5]]
+          dim1 <- dim(listaTransImages[[i]])
+          dim2 <- dim(listaTransImages[[j]])
+          
+          if (patient == 'unique') { 
+            x1_min <- max(0, x1 - 200)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1 + 200)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            x2_min <- max(0, x2 - 200)
+            y2_min <- max(0, y2 - 200)
+            x2_max <- min(dim1[1], dim2[1], x2 + 200)
+            y2_max <- min(dim1[2], dim2[2], y2 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+            coordRange2 <- list(x2_min:x2_max, y2_min:y2_max)
+            
+          } else if (patient == 'multiple') {
+            x1_min <- max(0, x1 - 310)
+            y1_min <- max(0, y1 - 200)
+            x1_max <- min(dim1[1], dim2[1], x1)
+            y1_max <- min(dim1[2], dim2[2], y1 + 200)
+            x2_min <- max(0, x2 - 310)
+            y2_min <- max(0, y2 - 200)
+            x2_max <- min(dim1[1], dim2[1], x2)
+            y2_max <- min(dim1[2], dim2[2], y2 + 200)
+            
+            coordRange  <- list(x1_min:x1_max, y1_min:y1_max)
+            coordRange2 <- list(x2_min:x2_max, y2_min:y2_max)
+          }
+          print(paste0("Evaluation of the alignment between images ", as.character(i), " and ", as.character(j), " selecting an area from a reference point in each image."))
+          
+          # Evaluate the alignment and store parameters
+          parameters <- tryCatch({
+            evalAlign(
+              listaTransImages[[i]][coordRange[[1]],coordRange[[2]],],
+              listaTransImages[[j]][coordRange2[[1]],coordRange2[[2]],],
+              listaCoordenadasNEW, c(i,j)) 
+          }, error = function(e) {
+            message(sprintf("Error en comparación %d-%d: %s", i, j, e$message))
+            return(NULL)
+          })
+          print(parameters)
+          imagescompare <- paste0("comparing_", as.character(i), '_', as.character(j))
+          Evaluation$transformed$commonRegion_differentPoint[[imagescompare]] <- parameters
+        }}}}
+  
+  return(Evaluation)
 }
